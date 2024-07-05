@@ -4,6 +4,7 @@
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
+
 // Parsed command representation
 #define EXEC  1
 #define REDIR 2
@@ -54,6 +55,26 @@ void panic(char*);
 struct cmd *parsecmd(char*);
 void runcmd(struct cmd*) __attribute__((noreturn));
 
+void log_command_history(char **argv) {
+    int fd = open("sh_history", O_RDWR | O_CREATE); 
+    if (fd < 0) {
+        printf("open sh_history failed\n");
+        return;
+    }
+
+    char temp;
+    while (read(fd, &temp, 1) == 1) { // this is how i was able to  
+    }                                 // write at the end of the file 
+
+    for (int i = 0; argv[i]; i++) {
+        int len = strlen(argv[i]);
+        write(fd, argv[i], len);
+        write(fd, " ", 1);
+    }
+    write(fd, "\n", 1);
+    close(fd);
+}
+
 // Execute cmd.  Never returns.
 void
 runcmd(struct cmd *cmd)
@@ -76,6 +97,7 @@ runcmd(struct cmd *cmd)
     ecmd = (struct execcmd*)cmd;
     if(ecmd->argv[0] == 0)
       exit(1);
+    log_command_history(ecmd->argv); // Log command
     exec(ecmd->argv[0], ecmd->argv);
     fprintf(2, "exec %s failed\n", ecmd->argv[0]);
     break;
