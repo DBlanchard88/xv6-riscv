@@ -721,7 +721,6 @@ pstate()
     }
     release(&wait_lock);
     printf("Total: %d\n", total);
-    printf("CPU status:\n");
     for(int i = 0; i < NCPU; i++) {
         c = &cpus[i];
         struct proc *proc_running = c->proc;
