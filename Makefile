@@ -137,6 +137,7 @@ UPROGS=\
 	$U/_ln\
 	$U/_ls\
 	$U/_mkdir\
+	$U/_pi\
 	$U/_pstate\
 	$U/_rm\
 	$U/_sh\
