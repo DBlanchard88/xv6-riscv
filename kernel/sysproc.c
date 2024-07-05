@@ -89,3 +89,10 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// this is a wrapper for the pstate system call
+uint64
+sys_pstate(void)
+{
+  return pstate();
+}

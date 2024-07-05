@@ -681,3 +681,58 @@ procdump(void)
     printf("\n");
   }
 }
+
+
+
+
+int
+pstate()
+{
+    static char *states[] = {
+        [SLEEPING]  "SLEEPING ",
+        [RUNNABLE]  "RUNNABLE",
+        [RUNNING]   "RUNNING",
+    };
+    
+    struct proc *p;
+    struct cpu *c;
+    int total = 0;
+    char *state;
+    
+
+    acquire(&wait_lock);
+    printf("pid\tname\tstate\t\tparent \n"); 
+    printf("---------------------------------------\n");
+    for(p = proc; p < &proc[NPROC]; p++) {
+        if (p->state != UNUSED) {
+            const char *parent_name = "none";  
+            if (p == initproc) {
+                parent_name = "(init)";  
+            } else if (p->parent) {
+                parent_name = p->parent->name; 
+            }
+            if (p->state == SLEEPING || p->state == RUNNING || p->state == RUNNABLE) {
+                total++;  
+            }
+
+            state = states[p->state];
+            printf("%d\t%s\t%s        %s\n", p->pid, p->name, state, parent_name);
+        }
+    }
+    release(&wait_lock);
+    printf("Total: %d\n", total);
+    printf("CPU status:\n");
+    for(int i = 0; i < NCPU; i++) {
+        c = &cpus[i];
+        struct proc *proc_running = c->proc;
+        if (proc_running) {
+            printf("CPU %d: %s\n", i, proc_running->name);
+        } else {
+            printf("CPU %d: idle\n", i);
+        }
+    }
+    
+
+    
+    return 0;
+}

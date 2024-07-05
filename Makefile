@@ -60,7 +60,7 @@ CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
-CFLAGS += -I.
+CFLAGS += -I. -I$(U) -I$K 
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 # Disable PIE when possible (for Ubuntu 16.10 toolchain)
@@ -100,6 +100,16 @@ $U/usys.S : $U/usys.pl
 $U/usys.o : $U/usys.S
 	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
 
+# Add new compilation rule for pstate.o
+$U/pstate.o: $U/pstate.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+# Add new linking rule for _pstate
+$U/_ps: $U/ps.o $(ULIB)
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+	$(OBJDUMP) -S $@ > $U/pstate.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $U/pstate.sym
+
 $U/_forktest: $U/forktest.o $(ULIB)
 	# forktest has less library code linked in - needs to be small
 	# in order to be able to max out the proc table.
@@ -121,11 +131,13 @@ UPROGS=\
 	$U/_exectime\
 	$U/_forktest\
 	$U/_grep\
+	$U/_history\
 	$U/_init\
 	$U/_kill\
 	$U/_ln\
 	$U/_ls\
 	$U/_mkdir\
+	$U/_pstate\
 	$U/_rm\
 	$U/_sh\
 	$U/_stressfs\
@@ -133,7 +145,7 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
-	$U/_history\
+	
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
