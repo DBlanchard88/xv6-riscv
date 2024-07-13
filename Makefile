@@ -100,15 +100,21 @@ $U/usys.S : $U/usys.pl
 $U/usys.o : $U/usys.S
 	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
 
-# Add new compilation rule for pstate.o
-$U/pstate.o: $U/pstate.c
+$U/ps.o: $U/ps.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-# Add new linking rule for _pstate
 $U/_ps: $U/ps.o $(ULIB)
 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
-	$(OBJDUMP) -S $@ > $U/pstate.asm
-	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $U/pstate.sym
+	$(OBJDUMP) -S $@ > $U/ps.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $U/ps.sym
+
+$U/set.o: $U/set.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$U/_set: $U/set.o $(ULIB)
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+	$(OBJDUMP) -S $@ > $U/set.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $U/set.sym
 
 $U/_forktest: $U/forktest.o $(ULIB)
 	# forktest has less library code linked in - needs to be small
@@ -138,8 +144,9 @@ UPROGS=\
 	$U/_ls\
 	$U/_mkdir\
 	$U/_pi\
-	$U/_pstate\
+	$U/_ps\
 	$U/_rm\
+	$U/_set\
 	$U/_sh\
 	$U/_stressfs\
 	$U/_usertests\

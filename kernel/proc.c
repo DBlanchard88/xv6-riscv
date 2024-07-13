@@ -125,6 +125,8 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
+  p->priority = 0; // default priority
+
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -686,7 +688,7 @@ procdump(void)
 
 
 int
-pstate()
+ps()
 {
     static char *states[] = {
         [SLEEPING]  "SLEEPING ",
@@ -695,43 +697,45 @@ pstate()
     };
     
     struct proc *p;
-    struct cpu *c;
-    int total = 0;
     char *state;
     
 
     acquire(&wait_lock);
-    printf("pid\tname\tstate\t\tparent \n"); 
+    printf("pid\tname\tstate\t\tpriority \n"); 
     printf("---------------------------------------\n");
     for(p = proc; p < &proc[NPROC]; p++) {
         if (p->state != UNUSED) {
-            const char *parent_name = "none";  
-            if (p == initproc) {
-                parent_name = "(init)";  
-            } else if (p->parent) {
-                parent_name = p->parent->name; 
-            }
-            if (p->state == SLEEPING || p->state == RUNNING || p->state == RUNNABLE) {
-                total++;  
-            }
+          if (p->state == SLEEPING || p->state == RUNNING || p->state == RUNNABLE) {
+          }
 
-            state = states[p->state];
-            printf("%d\t%s\t%s        %s\n", p->pid, p->name, state, parent_name);
+          state = states[p->state];
+          printf("%d \t %s \t %s \t %d \n", p->pid, p->name, state, p->priority);
         }
     }
     release(&wait_lock);
-    printf("Total: %d\n", total);
-    for(int i = 0; i < NCPU; i++) {
-        c = &cpus[i];
-        struct proc *proc_running = c->proc;
-        if (proc_running) {
-            printf("CPU %d: %s\n", i, proc_running->name);
-        } else {
-            printf("CPU %d: idle\n", i);
+  
+    return 0;
+}
+
+
+// changeing the priority of the process
+int
+set(int pid, int priority)
+{
+    struct proc *p;
+    int found = 0;
+    acquire(&wait_lock);
+    for(p = proc; p < &proc[NPROC]; p++) {
+        if(p->pid == pid) {
+            p->priority = priority;
+            found = 1;
+            break;
         }
     }
-    
-
-    
+    release(&wait_lock);
+    if (found == 0) {
+        printf("No process with pid %d found\n", pid);
+        return set(pid, priority);
+    }
     return 0;
 }

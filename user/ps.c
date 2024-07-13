@@ -6,6 +6,6 @@
 int
 main(int argc, char *argvp[])
 {
-  pstate();
+  ps();
   exit(0);
 }

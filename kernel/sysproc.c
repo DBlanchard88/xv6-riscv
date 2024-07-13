@@ -92,7 +92,15 @@ sys_uptime(void)
 
 // this is a wrapper for the pstate system call
 uint64
-sys_pstate(void)
+sys_ps(void)
 {
-  return pstate();
+  return ps();
+}
+
+uint64
+sys_set(void) {
+    int pid, priority;
+    argint(0, &pid);
+    argint(1, &priority);
+    return set(pid, priority);
 }
