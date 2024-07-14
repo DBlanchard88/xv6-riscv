@@ -448,30 +448,72 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  
+  struct proc *lastScheduled = 0;
+
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
+    int highestPriority = 21; 
+    struct proc *highPriorityProcess = 0;
+
+    // iterate over the process table to find the highest priority process
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
+        if(highPriorityProcess == 0 || p->priority < highestPriority) {
+          if (highPriorityProcess) {
+            release(&highPriorityProcess->lock);
+          }
+          highPriorityProcess = p;
+          highestPriority = p->priority;
+        } else if (p->priority == highestPriority && (highPriorityProcess == 0 || lastScheduled == 0 || p > lastScheduled)) {
+          if (highPriorityProcess) {
+            release(&highPriorityProcess->lock);
+          }
+          highPriorityProcess = p;
+        } else {
+          release(&p->lock);
+        }
+      } else {
+        release(&p->lock);
       }
-      release(&p->lock);
+    }
+
+    if (highPriorityProcess == 0 && lastScheduled) {
+      // if no process was found and lastScheduled is set, reset lastScheduled
+      for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if(p->state == RUNNABLE && p->priority == highestPriority) {
+          if (highPriorityProcess == 0 || p > lastScheduled) {
+            if (highPriorityProcess) {
+              release(&highPriorityProcess->lock);
+            }
+            highPriorityProcess = p;
+          }
+        }
+        if (p != highPriorityProcess) {
+          release(&p->lock);
+        }
+      }
+    }
+
+    if (highPriorityProcess) {
+      // context switch
+      highPriorityProcess->state = RUNNING;
+      c->proc = highPriorityProcess;
+      lastScheduled = highPriorityProcess; 
+      swtch(&c->context, &highPriorityProcess->context);
+
+      // Process is done running for now.
+      // It should have changed its state before coming back.
+      c->proc = 0;
+      release(&highPriorityProcess->lock);
     }
   }
 }
+
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
